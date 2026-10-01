@@ -1,0 +1,22 @@
+apiVersion: aws.platform.upbound.io/v1alpha1
+kind: EKS
+metadata:
+  name: test-aws-eks
+  namespace: team-a
+  uid: uid-aws-eks
+spec:
+  parameters:
+    accessConfig:
+      authenticationMode: API_AND_CONFIG_MAP
+      bootstrapClusterCreatorAdminPermissions: true
+    iam:
+      principalArn: arn:aws:iam::123456789:role/AWSReservedSSO_AdministratorAccess_test
+    id: caas-aws-flux
+    managementPolicies:
+    - '*'
+    nodes:
+      count: 3
+      instanceType: t3.small
+    providerConfigName: default
+    region: us-west-2
+    version: '1.31'

@@ -1,0 +1,108 @@
+apiVersion: apiextensions.crossplane.io/v2
+kind: CompositeResourceDefinition
+metadata:
+  name: xargo.gitops.platform.upbound.io
+spec:
+  group: gitops.platform.upbound.io
+  names:
+    kind: XArgo
+    plural: xargo
+  versions:
+  - name: v1alpha1
+    served: true
+    referenceable: true
+    schema:
+      openAPIV3Schema:
+        type: object
+        properties:
+          spec:
+            type: object
+            properties:
+              parameters:
+                type: object
+                description: ArgoCD configuration parameters.
+                properties:
+                  providerConfigName:
+                    type: string
+                    description: Crossplane ProviderConfig to use for provisioning
+                      this resources
+                  ingressUrl:
+                    type: string
+                    description: set ingressUrl for argocd server
+                  oidcConfig:
+                    type: string
+                    description: set oidc config for argocd server
+                  resourceInclusions:
+                    type: string
+                    description: configure the list of included resources
+                  resourceExclusions:
+                    type: string
+                    description: configure the list of exclude resources
+                  kubeConfigSecretRef:
+                    description: The KubeConfig for reconciling the Kustomization
+                      on a remote cluster.
+                    type: object
+                    properties:
+                      name:
+                        description: Name of the Secret
+                        type: string
+                      key:
+                        description: Key in the Secret
+                        type: string
+                        default: kubeconfig
+                  operators:
+                    description: Configuration for operators.
+                    type: object
+                    default:
+                      argocd:
+                        version: 7.1.1
+                    properties:
+                      argocd:
+                        description: Configuration for the ArgoCD operator.
+                        type: object
+                        properties:
+                          version:
+                            description: ArgoCD helm-chart version to run.
+                            type: string
+                            default: 7.1.1
+                        required:
+                        - version
+                  source:
+                    type: object
+                    properties:
+                      git:
+                        type: object
+                        properties:
+                          url:
+                            description: URL specifies the Git repository URL, it
+                              can be an HTTP/S address.
+                            pattern: ^(http|https)://.*\.git$
+                            type: string
+                          path:
+                            type: string
+                          ref:
+                            description: Reference specifies the Git reference to
+                              resolve and monitor for changes.
+                            type: object
+                            properties:
+                              name:
+                                description: Name of the reference to check out
+                                type: string
+                        required:
+                        - url
+                        - ref
+                    required:
+                    - git
+                  managementPolicies:
+                    type: array
+                    items:
+                      type: string
+                    default:
+                    - '*'
+                required:
+                - providerConfigName
+                - managementPolicies
+                - source
+  scope: Namespaced
+  defaultCompositionRef:
+    name: xargo.gitops.platform.upbound.io

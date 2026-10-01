@@ -1,0 +1,91 @@
+[
+  {
+    "component": "aws-eks",
+    "repository": "https://github.com/upbound/configuration-aws-eks",
+    "revision": "6566fc808ed58cf4932adbd8822cb8263ad1b767",
+    "apiVersion": "aws.platform.upbound.io/v1alpha1",
+    "kind": "EKS",
+    "composition": "eks.aws.platform.upbound.io"
+  },
+  {
+    "component": "aws-eks-pod-identity",
+    "repository": "https://github.com/upbound/configuration-aws-eks-pod-identity",
+    "revision": "c747b33348f8ed413d1e4a73dc8e0621db2d41b7",
+    "apiVersion": "aws.platform.upbound.io/v1alpha1",
+    "kind": "PodIdentity",
+    "composition": "podidentities.aws.platform.upbound.io"
+  },
+  {
+    "component": "aws-lb-controller",
+    "repository": "https://github.com/upbound/configuration-aws-lb-controller",
+    "revision": "49241ed6888800c475c3cc0030bebdafb0e137a3",
+    "apiVersion": "aws.platform.upbound.io/v1alpha1",
+    "kind": "AWSLBController",
+    "composition": "awslbcontrollers.aws.platform.upbound.io"
+  },
+  {
+    "component": "aws-network",
+    "repository": "https://github.com/upbound/configuration-aws-network",
+    "revision": "4631cb7ca7b4cecd4a54b8d64b061cc4e7f19c7d",
+    "apiVersion": "aws.platform.upbound.io/v1alpha1",
+    "kind": "Network",
+    "composition": "networks.aws.platform.upbound.io"
+  },
+  {
+    "component": "azure-aks",
+    "repository": "https://github.com/upbound/configuration-azure-aks",
+    "revision": "b3ce6c50eb79478d2d8162e26f48ab43a455377d",
+    "apiVersion": "azure.platform.upbound.io/v1alpha1",
+    "kind": "AKS",
+    "composition": "aks.azure.platform.upbound.io"
+  },
+  {
+    "component": "azure-network",
+    "repository": "https://github.com/upbound/configuration-azure-network",
+    "revision": "f024f10ba7cfd59371106ed2055213bd935f5949",
+    "apiVersion": "azure.platform.upbound.io/v1alpha1",
+    "kind": "Network",
+    "composition": "networks.azure.platform.upbound.io",
+    "apiRevision": "fd4110ea0421d87aa1a838dd824cd8a273450e2c"
+  },
+  {
+    "component": "gcp-gke",
+    "repository": "https://github.com/upbound/configuration-gcp-gke",
+    "revision": "4a7a651eb9843709ab0f5e8c05beadf1f16ac0ff",
+    "apiVersion": "gcp.platform.upbound.io/v1alpha1",
+    "kind": "GKE",
+    "composition": "gke.gcp.platform.upbound.io"
+  },
+  {
+    "component": "gcp-network",
+    "repository": "https://github.com/upbound/configuration-gcp-network",
+    "revision": "4246cd32f66e8e1cabf0daf8b76bc6b400df0aba",
+    "apiVersion": "gcp.platform.upbound.io/v1alpha1",
+    "kind": "Network",
+    "composition": "networks.gcp.platform.upbound.io"
+  },
+  {
+    "component": "gitops-argocd",
+    "repository": "https://github.com/upbound/configuration-gitops-argocd",
+    "revision": "4f5fd8c3452372b3ace80f6d6f737290e442365a",
+    "apiVersion": "gitops.platform.upbound.io/v1alpha1",
+    "kind": "XArgo",
+    "composition": "xargo.gitops.platform.upbound.io"
+  },
+  {
+    "component": "gitops-flux",
+    "repository": "https://github.com/upbound/configuration-gitops-flux",
+    "revision": "f34819f53269f3bfef13b8301bc06fe209b0e41f",
+    "apiVersion": "gitops.platform.upbound.io/v1alpha1",
+    "kind": "Flux",
+    "composition": "flux.gitops.platform.upbound.io"
+  },
+  {
+    "component": "observability-oss",
+    "repository": "https://github.com/upbound/configuration-observability-oss",
+    "revision": "d5aceea0ff354915697c4652a1150b21012cf68d",
+    "apiVersion": "observe.platform.upbound.io/v1alpha1",
+    "kind": "Oss",
+    "composition": "osss.observe.platform.upbound.io"
+  }
+]

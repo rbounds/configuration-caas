@@ -16,7 +16,6 @@
   ],
   labels: [
     'automated',
-    'run-e2e-tests',
   ],
   ignorePaths: [ // default renovate ignorePaths without '**/examples/**'
     '**/node_modules/**',
@@ -28,7 +27,7 @@
     '**/__fixtures__/**'
   ],
   crossplane: {
-    fileMatch: ['(^|/)examples/.*\\.ya?ml$']
+    fileMatch: ['(^|/)examples/.*\\.ya?ml$', '^apis/crossplane\\.yaml$']
   },
   packageRules: [
     {
@@ -39,7 +38,7 @@
     },
     {
       matchFileNames: [
-        'upbound.yaml',
+        'apis/crossplane.yaml',
       ],
       groupName: 'crossplane dependencies',
     },
@@ -47,20 +46,6 @@
       matchManagers: ['crossplane'],
       matchFileNames: ['examples/**'],
       groupName: 'examples'
-    },
-  ],
-  customManagers: [
-    {
-      customType: 'regex',
-      description: 'Bump providers/functions/configurations in upbound.yaml',
-      fileMatch: [
-        'upbound.yaml',
-      ],
-      matchStrings: [
-        '#\\s*renovate:\\s*datasource=(?<datasource>[^\\s]+)\\s+depName=(?<depName>[^\\s]+)\\s*\\n\\s*version:\\s*"(?<currentValue>[^"]+)"',
-      ],
-      datasourceTemplate: '{{{datasource}}}',
-      depNameTemplate: '{{{depName}}}',
     },
   ],
   "git-submodules": {

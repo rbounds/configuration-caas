@@ -1,0 +1,98 @@
+apiVersion: apiextensions.crossplane.io/v2
+kind: CompositeResourceDefinition
+metadata:
+  name: networks.azure.platform.upbound.io
+spec:
+  scope: Namespaced
+  group: azure.platform.upbound.io
+  names:
+    categories:
+    - crossplane
+    kind: Network
+    plural: networks
+  versions:
+  - name: v1alpha1
+    referenceable: true
+    schema:
+      openAPIV3Schema:
+        description: Network is the Schema for the Network API.
+        properties:
+          spec:
+            description: NetworkSpec defines the desired state of Network.
+            properties:
+              parameters:
+                properties:
+                  id:
+                    type: string
+                    description: ID of this Network that other objects will use to
+                      refer to it.
+                  region:
+                    type: string
+                    description: Region is the region you'd like your resource to
+                      be created in.
+                  addressRange:
+                    type: string
+                    description: Address range (CIDR block) for the virtual network
+                    default: 10.0.0.0/16
+                  generalSubnetRange:
+                    type: string
+                    description: Address range (CIDR block) for the general subnet
+                    default: 10.0.1.0/24
+                  databaseSubnets:
+                    type: array
+                    description: List of database subnets to create
+                    items:
+                      type: object
+                      properties:
+                        addressRange:
+                          type: string
+                          description: Address range (CIDR block) for the database
+                            subnet
+                        serviceType:
+                          type: string
+                          description: Type of database service to use (postgresql
+                            or mysql)
+                          enum:
+                          - postgres
+                          - mysql
+                      required:
+                      - addressRange
+                      - serviceType
+                  managementPolicies:
+                    description: ManagementPolicies for Azure Network resources. Defaults
+                      to ["*"] which includes all operations (Create, Observe, Update,
+                      Delete, LateInitialize). To orphan resources on deletion, use
+                      ["Create", "Observe", "Update", "LateInitialize"].
+                    type: array
+                    items:
+                      type: string
+                      enum:
+                      - '*'
+                      - Create
+                      - Observe
+                      - Update
+                      - Delete
+                      - LateInitialize
+                    default:
+                    - '*'
+                  providerConfigName:
+                    description: Crossplane ProviderConfig to use for provisioning
+                      this resources
+                    type: string
+                    default: default
+                required:
+                - managementPolicies
+                - providerConfigName
+                - id
+                - region
+                type: object
+            type: object
+          status:
+            description: NetworkStatus defines the observed state of Network.
+            type: object
+        required:
+        - spec
+        type: object
+    served: true
+  defaultCompositionRef:
+    name: networks.azure.platform.upbound.io

@@ -1,0 +1,16 @@
+apiVersion: aws.platform.upbound.io/v1alpha1
+kind: AWSLBController
+metadata:
+  name: test-aws-lb-controller
+  namespace: team-a
+  uid: uid-aws-lb-controller
+spec:
+  parameters:
+    clusterName: eks-test
+    eksResourceName: xeks
+    helm:
+      providerConfigName: caas-aws-flux
+    managementPolicies:
+    - '*'
+    providerConfigName: default
+    region: us-west-2

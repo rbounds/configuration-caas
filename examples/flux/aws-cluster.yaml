@@ -1,25 +1,18 @@
 apiVersion: caas.upbound.io/v1alpha1
-kind: Cluster
+kind: XCluster
 metadata:
   name: caas-aws-flux
-  namespace: default
+  namespace: team-a
 spec:
-  compositeDeletePolicy: Foreground
   parameters:
     cloud: aws
     id: caas-aws-flux
     region: us-west-2
-    version: "1.27"
+    version: '1.31'
+    deletionPolicy: Delete
+    providerConfigName: default
     iam:
-      # Important: Please specify an iamRoleArn to access the AWS EKS Cluster deployed as part of CNOE.
-      # Without specifying a valid roleArn, you will not be able to log in to the EKS cluster.
-      # If you are using AWS SSO Roles, ensure to remove 'aws-reserved/sso.amazonaws.com/' from the ARN.
-      # For example, convert this:
-      #   arn:aws:iam::123456789:role/aws-reserved/sso.amazonaws.com/AWSReservedSSO_AdministratorAccess_d703c73ed340fde7
-      # To this:
-      #   arn:aws:iam::123456789:role/AWSReservedSSO_AdministratorAccess_d703c73ed340fde7
-      # roleArn: arn:aws:iam::123456789:role/AWSReservedSSO_AdministratorAccess_d703c73ed340fde7
-      roleArn: ${data.aws_eks_iam_default_admin}
+      roleArn: arn:aws:iam::123456789:role/AWSReservedSSO_AdministratorAccess_test
     nodes:
       count: 3
       instanceType: t3.small
@@ -28,10 +21,13 @@ spec:
       git:
         url: https://github.com/upbound/configuration-caas/
         ref:
-          # refs/heads/main
-          # refs/tags/v0.1.0
-          # refs/pull/420/head
-          # refs/merge-requests/1/head
           name: refs/heads/main
+    operators:
+      prometheus:
+        version: 67.4.0
+      flux:
+        version: 2.16.4
+      fluxSync:
+        version: 1.13.4
   writeConnectionSecretToRef:
     name: caas-aws-flux-kubeconfig

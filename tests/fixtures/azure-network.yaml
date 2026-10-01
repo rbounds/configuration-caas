@@ -1,0 +1,15 @@
+apiVersion: azure.platform.upbound.io/v1alpha1
+kind: Network
+metadata:
+  name: test-azure-network
+  namespace: team-a
+  uid: uid-azure-network
+spec:
+  parameters:
+    addressRange: 10.1.0.0/16
+    generalSubnetRange: 10.1.1.0/24
+    id: caas-azure-flux
+    managementPolicies:
+    - '*'
+    providerConfigName: default
+    region: eastus

@@ -1,0 +1,250 @@
+# Note: avoid casting the full OXR (e.g. Oss{**oxr}) because the
+# auto-generated model types status.conditions as a typed list which is
+# incompatible with the generic list Crossplane passes at runtime.
+# Instead, keep the raw OXR and cast only the sub-fields we need.
+oxr = option("params").oxr
+_params = {**oxr.spec?.parameters}
+
+_metadata = lambda name: str -> any {
+    {
+        name = name.lower() + "-" + _id.lower()
+        annotations = { "krm.kcl.dev/composition-resource-name" = name }
+    }
+}
+
+# Extract parameters from the composite resource
+_id = _params?.id
+_managementPolicy = _params?.managementPolicies
+_prometheusVersion = _params?.operators?.prometheus?.version or "79.1.1"
+
+# PodMonitor for Crossplane RBAC Manager
+_pod_monitor_rbac_manager = {
+    apiVersion = "kubernetes.m.crossplane.io/v1alpha1"
+    kind = "Object"
+    metadata = _metadata("podMonitorCrossplaneRbacManager") | {
+        labels = { type = "podMonitorCrossplaneRbacManager" }
+    }
+    spec = {
+        managementPolicies = _managementPolicy
+        providerConfigRef = {
+            kind = "ProviderConfig"
+            name = _id
+        }
+        watch = False
+        forProvider = {
+            manifest = {
+                apiVersion = "monitoring.coreos.com/v1"
+                kind = "PodMonitor"
+                metadata = {
+                    labels = { app = "crossplane-rbac-manager" }
+                    name = "crossplane-rbac-manager"
+                    namespace = "operators"
+                }
+                spec = {
+                    namespaceSelector = {
+                        matchNames = ["crossplane-system"]
+                    }
+                    podMetricsEndpoints = [{ port = "metrics" }]
+                    selector = {
+                        matchLabels = { app = "crossplane-rbac-manager" }
+                    }
+                }
+            }
+        }
+    }
+}
+
+# PodMonitor for Crossplane
+_pod_monitor_crossplane = {
+    apiVersion = "kubernetes.m.crossplane.io/v1alpha1"
+    kind = "Object"
+    metadata = _metadata("podMonitorCrossplane") | {
+        labels = { type = "podMonitorCrossplane" }
+    }
+    spec = {
+        managementPolicies = _managementPolicy
+        providerConfigRef = {
+            kind = "ProviderConfig"
+            name = _id
+        }
+        watch = False
+        forProvider = {
+            manifest = {
+                apiVersion = "monitoring.coreos.com/v1"
+                kind = "PodMonitor"
+                metadata = {
+                    labels = { app = "crossplane" }
+                    name = "crossplane"
+                    namespace = "operators"
+                }
+                spec = {
+                    namespaceSelector = {
+                        matchNames = ["crossplane-system"]
+                    }
+                    podMetricsEndpoints = [{ port = "metrics" }]
+                    selector = {
+                        matchLabels = { app = "crossplane" }
+                    }
+                }
+            }
+        }
+    }
+}
+
+# PodMonitor for Crossplane Providers
+_pod_monitor_providers = {
+    apiVersion = "kubernetes.m.crossplane.io/v1alpha1"
+    kind = "Object"
+    metadata = _metadata("podMonitorCrossplaneProviders") | {
+        labels = { type = "podMonitorCrossplaneProviders" }
+    }
+    spec = {
+        managementPolicies = _managementPolicy
+        providerConfigRef = {
+            kind = "ProviderConfig"
+            name = _id
+        }
+        watch = False
+        forProvider = {
+            manifest = {
+                apiVersion = "monitoring.coreos.com/v1"
+                kind = "PodMonitor"
+                metadata = {
+                    labels = { app = "crossplane-providers" }
+                    name = "crossplane-providers"
+                    namespace = "operators"
+                }
+                spec = {
+                    namespaceSelector = {
+                        matchNames = ["crossplane-system"]
+                    }
+                    podMetricsEndpoints = [{ port = "http-prom" }]
+                    selector = {
+                        matchLabels = { app = "crossplane-providers" }
+                    }
+                }
+            }
+        }
+    }
+}
+
+# Prometheus Helm Release
+_prometheus_release = {
+    apiVersion = "helm.m.crossplane.io/v1beta1"
+    kind = "Release"
+    metadata = _metadata("releasePrometheus") | {
+        labels = oxr.metadata?.labels or {}
+        annotations = (oxr.metadata?.annotations or {}) | {
+            "crossplane.io/external-name" = "oss"
+        }
+    }
+    spec = {
+        managementPolicies = _managementPolicy
+        providerConfigRef = {
+            kind = "ProviderConfig"
+            name = _id
+        }
+        rollbackLimit = 10
+        forProvider = {
+            chart = {
+                name = "kube-prometheus-stack"
+                repository = "https://prometheus-community.github.io/helm-charts"
+                version = _prometheusVersion
+            }
+            namespace = "operators"
+            wait = False
+            values = {
+                prometheus = {
+                    prometheusSpec = {
+                        podMonitorSelectorNilUsesHelmValues = False
+                        probeSelectorNilUsesHelmValues = False
+                        ruleSelectorNilUsesHelmValues = False
+                        serviceMonitorSelectorNilUsesHelmValues = False
+                    }
+                }
+            }
+        }
+    }
+}
+
+# Usage resources
+_usage_rbac = {
+    apiVersion = "protection.crossplane.io/v1beta1"
+    kind = "Usage"
+    metadata = _metadata("usagePrometheusByPodMonitorCrossplaneRbacManager")
+    spec = {
+        by = {
+            apiVersion = "kubernetes.m.crossplane.io/v1alpha1"
+            kind = "Object"
+            resourceSelector = {
+                matchControllerRef = True
+                matchLabels = { type = "podMonitorCrossplaneRbacManager" }
+            }
+        }
+        of = {
+            apiVersion = "helm.m.crossplane.io/v1beta1"
+            kind = "Release"
+            resourceSelector = { matchControllerRef = True }
+        }
+    }
+}
+
+_usage_crossplane = {
+    apiVersion = "protection.crossplane.io/v1beta1"
+    kind = "Usage"
+    metadata = _metadata("usagePrometheusByPodMonitorCrossplane")
+    spec = {
+        by = {
+            apiVersion = "kubernetes.m.crossplane.io/v1alpha1"
+            kind = "Object"
+            resourceSelector = {
+                matchControllerRef = True
+                matchLabels = { type = "podMonitorCrossplane" }
+            }
+        }
+        of = {
+            apiVersion = "helm.m.crossplane.io/v1beta1"
+            kind = "Release"
+            resourceSelector = { matchControllerRef = True }
+        }
+    }
+}
+
+_usage_providers = {
+    apiVersion = "protection.crossplane.io/v1beta1"
+    kind = "Usage"
+    metadata = _metadata("usagePrometheusByPodMonitorProviders")
+    spec = {
+        by = {
+            apiVersion = "kubernetes.m.crossplane.io/v1alpha1"
+            kind = "Object"
+            resourceSelector = {
+                matchControllerRef = True
+                matchLabels = { type = "podMonitorCrossplaneProviders" }
+            }
+        }
+        of = {
+            apiVersion = "helm.m.crossplane.io/v1beta1"
+            kind = "Release"
+            resourceSelector = { matchControllerRef = True }
+        }
+    }
+}
+
+_items = [
+    _pod_monitor_rbac_manager,
+    _pod_monitor_crossplane,
+    _pod_monitor_providers,
+    _prometheus_release,
+    _usage_rbac,
+    _usage_crossplane,
+    _usage_providers
+]
+
+_raw_items = _items
+
+# All resources are local to the XR. Status patches preserve the XR's identity.
+items = [
+    item | {metadata.namespace = oxr.metadata.namespace}
+    for item in _raw_items
+]

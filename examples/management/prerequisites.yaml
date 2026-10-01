@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: team-a
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: configuration-caas-secrets
+  labels:
+    rbac.crossplane.io/aggregate-to-crossplane: "true"
+rules:
+  # Read provider kubeconfigs and compose the XCluster's native Secret.
+  - apiGroups: [""]
+    resources: [secrets]
+    verbs: [get, list, watch, create, update, patch, delete]

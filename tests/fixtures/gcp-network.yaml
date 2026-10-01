@@ -1,0 +1,13 @@
+apiVersion: gcp.platform.upbound.io/v1alpha1
+kind: Network
+metadata:
+  name: test-gcp-network
+  namespace: team-a
+  uid: uid-gcp-network
+spec:
+  parameters:
+    id: caas-gcp-flux
+    managementPolicies:
+    - '*'
+    providerConfigName: default
+    region: us-central1

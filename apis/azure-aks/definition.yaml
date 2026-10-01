@@ -1,0 +1,131 @@
+apiVersion: apiextensions.crossplane.io/v2
+kind: CompositeResourceDefinition
+metadata:
+  name: aks.azure.platform.upbound.io
+spec:
+  scope: Namespaced
+  group: azure.platform.upbound.io
+  names:
+    kind: AKS
+    plural: aks
+  versions:
+  - name: v1alpha1
+    served: true
+    referenceable: true
+    schema:
+      openAPIV3Schema:
+        type: object
+        properties:
+          spec:
+            type: object
+            properties:
+              crossplane:
+                type: object
+                description: Crossplane-specific configuration
+                properties:
+                  compositionSelector:
+                    type: object
+                    description: Selector for choosing a Composition
+                    properties:
+                      matchLabels:
+                        type: object
+                        additionalProperties:
+                          type: string
+              parameters:
+                type: object
+                description: AKS configuration parameters.
+                properties:
+                  id:
+                    type: string
+                    description: ID of this Cluster that other objects will use to
+                      refer to it.
+                  region:
+                    type: string
+                    description: Region is the region you'd like your resource to
+                      be created in.
+                  managementPolicies:
+                    description: ManagementPolicies for the AKS resources. Defaults
+                      to ["*"] which includes all operations (Create, Observe, Update,
+                      Delete, LateInitialize). To orphan resources on deletion, use
+                      ["Create", "Observe", "Update", "LateInitialize"].
+                    type: array
+                    items:
+                      type: string
+                      enum:
+                      - '*'
+                      - Create
+                      - Observe
+                      - Update
+                      - Delete
+                      - LateInitialize
+                    default:
+                    - '*'
+                  providerConfigName:
+                    description: Crossplane ProviderConfig to use for provisioning
+                      this resources
+                    type: string
+                    default: default
+                  version:
+                    description: Kubernetes version
+                    type: string
+                    enum:
+                    - '1.35'
+                    - '1.34'
+                    - '1.33'
+                    - '1.32'
+                    default: '1.34'
+                  nodes:
+                    type: object
+                    description: AKS node configuration parameters.
+                    properties:
+                      count:
+                        type: integer
+                        description: Desired node count
+                      instanceType:
+                        type: string
+                        description: instance types associated with the Node Group.
+                        default: Standard_B2s
+                      availabilityZones:
+                        type: array
+                        description: Optional list of availability zones to spread
+                          the default node pool across (e.g. ["1","2","3"]). When
+                          omitted, no zones are set. Immutable once set.
+                        items:
+                          type: string
+                    required:
+                    - count
+                    - instanceType
+                required:
+                - id
+                - region
+                - nodes
+            required:
+            - parameters
+          status:
+            description: A Status represents the observed state
+            properties:
+              aks:
+                description: Freeform field containing status information for aks
+                type: object
+                x-kubernetes-preserve-unknown-fields: true
+                properties:
+                  clusterName:
+                    description: Name of the composed AKS cluster.
+                    type: string
+                  oidcUrl:
+                    description: OIDC issuer URL of the AKS cluster.
+                    type: string
+                  identityPrincipalId:
+                    description: Principal ID of the AKS cluster's SystemAssigned
+                      managed identity.
+                    type: string
+                  nodes:
+                    description: Observed node configuration of the AKS cluster.
+                    type: object
+                    properties:
+                      vmSize:
+                        description: VM size of the default node pool.
+                        type: string
+            type: object
+  defaultCompositionRef:
+    name: aks.azure.platform.upbound.io

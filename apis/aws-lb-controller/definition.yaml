@@ -1,0 +1,196 @@
+apiVersion: apiextensions.crossplane.io/v2
+kind: CompositeResourceDefinition
+metadata:
+  name: awslbcontrollers.aws.platform.upbound.io
+spec:
+  group: aws.platform.upbound.io
+  names:
+    categories:
+    - crossplane
+    kind: AWSLBController
+    plural: awslbcontrollers
+  scope: Namespaced
+  versions:
+  - name: v1alpha1
+    referenceable: true
+    served: true
+    schema:
+      openAPIV3Schema:
+        description: AWSLBController is the Schema for the AWSLBController API.
+        type: object
+        properties:
+          spec:
+            type: object
+            properties:
+              parameters:
+                type: object
+                description: AWS Load Balancer Controller configuration parameters.
+                properties:
+                  region:
+                    type: string
+                    description: Region is the region your cluster is running in.
+                    default: us-west-2
+                  vpcId:
+                    type: string
+                    description: The VPC ID for the Kubernetes cluster. Set this manually
+                      when your pods are unable to use the metadata service to determine
+                      this automatically
+                  clusterName:
+                    description: The name of the cluster to create the association
+                      in.
+                    type: string
+                  clusterNameRef:
+                    description: Reference to a Cluster in eks to populate clusterName.
+                    properties:
+                      name:
+                        description: Name of the referenced object.
+                        type: string
+                      policy:
+                        description: Policies for referencing.
+                        properties:
+                          resolution:
+                            default: Required
+                            description: 'Resolution specifies whether resolution
+                              of this reference is required.
+
+                              The default is ''Required'', which means the reconcile
+                              will fail if the
+
+                              reference cannot be resolved. ''Optional'' means this
+                              reference will be
+
+                              a no-op if it cannot be resolved.'
+                            enum:
+                            - Required
+                            - Optional
+                            type: string
+                          resolve:
+                            description: 'Resolve specifies when this reference should
+                              be resolved. The default
+
+                              is ''IfNotPresent'', which will attempt to resolve the
+                              reference only when
+
+                              the corresponding field is not present. Use ''Always''
+                              to resolve the
+
+                              reference on every reconcile.'
+                            enum:
+                            - Always
+                            - IfNotPresent
+                            type: string
+                        type: object
+                    required:
+                    - name
+                    type: object
+                  clusterNameSelector:
+                    description: Selector for a Cluster in eks to populate clusterName.
+                    properties:
+                      matchControllerRef:
+                        description: 'MatchControllerRef ensures an object with the
+                          same controller reference
+
+                          as the selecting object is selected.'
+                        type: boolean
+                      matchLabels:
+                        additionalProperties:
+                          type: string
+                        description: MatchLabels ensures an object with matching labels
+                          is selected.
+                        type: object
+                      policy:
+                        description: Policies for selection.
+                        properties:
+                          resolution:
+                            default: Required
+                            description: 'Resolution specifies whether resolution
+                              of this reference is required.
+
+                              The default is ''Required'', which means the reconcile
+                              will fail if the
+
+                              reference cannot be resolved. ''Optional'' means this
+                              reference will be
+
+                              a no-op if it cannot be resolved.'
+                            enum:
+                            - Required
+                            - Optional
+                            type: string
+                          resolve:
+                            description: 'Resolve specifies when this reference should
+                              be resolved. The default
+
+                              is ''IfNotPresent'', which will attempt to resolve the
+                              reference only when
+
+                              the corresponding field is not present. Use ''Always''
+                              to resolve the
+
+                              reference on every reconcile.'
+                            enum:
+                            - Always
+                            - IfNotPresent
+                            type: string
+                        type: object
+                    type: object
+                  managementPolicies:
+                    description: ManagementPolicies for AWS EC2 resources. Defaults
+                      to ["*"] which includes all operations (Create, Observe, Update,
+                      Delete, LateInitialize). To orphan resources on deletion, use
+                      ["Create", "Observe", "Update", "LateInitialize"].
+                    type: array
+                    items:
+                      type: string
+                      enum:
+                      - '*'
+                      - Create
+                      - Observe
+                      - Update
+                      - Delete
+                      - LateInitialize
+                      default: '*'
+                  providerConfigName:
+                    description: Crossplane ProviderConfig to use for provisioning
+                      aws resources
+                    type: string
+                  helm:
+                    type: object
+                    description: Configuration for operators.
+                    properties:
+                      providerConfigName:
+                        description: Crossplane ProviderConfig to use for provisioning
+                          helm resources
+                        type: string
+                      chart:
+                        type: object
+                        description: Configuration for the Helm Chart
+                        properties:
+                          name:
+                            type: string
+                            description: chart name
+                          repo:
+                            type: string
+                            description: chart repo
+                          version:
+                            type: string
+                            description: chart version
+                        default:
+                          name: aws-load-balancer-controller
+                          repo: https://aws.github.io/eks-charts
+                          version: 1.8.3
+                  eksResourceName:
+                    type: string
+                    description: Name of the EKS XR protected until this controller
+                      is removed.
+          status:
+            type: object
+            properties:
+              clusterName:
+                type: string
+              roleArn:
+                type: string
+        required:
+        - spec
+  defaultCompositionRef:
+    name: awslbcontrollers.aws.platform.upbound.io

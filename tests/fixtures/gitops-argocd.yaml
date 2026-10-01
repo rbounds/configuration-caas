@@ -1,0 +1,21 @@
+apiVersion: gitops.platform.upbound.io/v1alpha1
+kind: XArgo
+metadata:
+  name: test-gitops-argocd
+  namespace: team-a
+  uid: uid-gitops-argocd
+spec:
+  parameters:
+    ingressUrl: https://argocd.example.com
+    managementPolicies:
+    - '*'
+    operators:
+      argocd:
+        version: 7.7.7
+    providerConfigName: caas-aws-argocd
+    source:
+      git:
+        path: configuration/infrastructure.yaml
+        ref:
+          name: refs/heads/main
+        url: https://github.com/upbound/configuration-caas.git

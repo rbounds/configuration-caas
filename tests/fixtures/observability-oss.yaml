@@ -1,0 +1,14 @@
+apiVersion: observe.platform.upbound.io/v1alpha1
+kind: Oss
+metadata:
+  name: test-observability-oss
+  namespace: team-a
+  uid: uid-observability-oss
+spec:
+  parameters:
+    id: caas-aws-flux
+    managementPolicies:
+    - '*'
+    operators:
+      prometheus:
+        version: 67.4.0

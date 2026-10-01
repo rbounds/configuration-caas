@@ -1,0 +1,23 @@
+apiVersion: gitops.platform.upbound.io/v1alpha1
+kind: Flux
+metadata:
+  name: test-gitops-flux
+  namespace: team-a
+  uid: uid-gitops-flux
+spec:
+  parameters:
+    managementPolicies:
+    - '*'
+    operators:
+      flux:
+        version: 2.16.4
+      fluxSync:
+        version: 1.13.4
+    providerConfigName: caas-aws-flux
+    source:
+      git:
+        interval: 5m0s
+        ref:
+          name: refs/heads/main
+        timeout: 60s
+        url: https://github.com/upbound/configuration-caas/

@@ -2,25 +2,23 @@ name: Composition Tests
 
 on:
   push:
-    branches:
-      - main
+    branches: [main]
   pull_request: {}
+
+permissions:
+  contents: read
 
 jobs:
   composition-tests:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
-        id: checkout
-        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5
-
-      - name: Install up
-        uses: upbound/action-up@53fe6395637d884c80d2bbc8c2d75d0ece776ced # v1
-        with:
-          skip-login: true
-
-      - name: Build project
-        run: up project build
-
-      - name: Run composition tests
-        run: up test run tests/*
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5
+      - name: Install Crossplane CLI
+        run: |
+          curl -fsSL https://cli.crossplane.io/stable/v2.4.0/bin/linux_amd64/crossplane -o crossplane
+          chmod +x crossplane
+          sudo mv crossplane /usr/local/bin/crossplane
+      - name: Install YAML tooling
+        run: python3 -m pip install -r tests/requirements.txt yamllint
+      - name: Run OSS composition tests
+        run: make test

@@ -1,0 +1,17 @@
+apiVersion: azure.platform.upbound.io/v1alpha1
+kind: AKS
+metadata:
+  name: test-azure-aks
+  namespace: team-a
+  uid: uid-azure-aks
+spec:
+  parameters:
+    id: caas-azure-flux
+    managementPolicies:
+    - '*'
+    nodes:
+      count: 3
+      instanceType: Standard_B2s
+    providerConfigName: default
+    region: eastus
+    version: '1.31'

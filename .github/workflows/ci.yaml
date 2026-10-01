@@ -1,56 +1,31 @@
-name: CI
+name: Package
 
 on:
   push:
-    branches:
-      - main
-  workflow_dispatch:
-    inputs:
-      version:
-        description: Package version (e.g. v0.1.0)
-        required: false
+    branches: [main]
+    tags: ['v*']
+  pull_request: {}
+  workflow_dispatch: {}
 
-env:
-  UP_API_TOKEN: ${{ secrets.UP_API_TOKEN }}
-  UP_ROBOT_ID: ${{ secrets.UP_ROBOT_ID }}
-  UP_ORG: ${{ secrets.UP_ORG }}
-  XPKG_REGISTRY: xpkg.upbound.io
+permissions:
+  contents: read
 
 jobs:
-  deploy:
+  build:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
-        id: checkout
-        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5
-
-      - name: Install and login with up
-        if: env.UP_API_TOKEN != '' && env.UP_ORG != ''
-        uses: upbound/action-up@53fe6395637d884c80d2bbc8c2d75d0ece776ced # v1
-        with:
-          api-token: ${{ secrets.UP_API_TOKEN }}
-          organization: ${{ secrets.UP_ORG }}
-
-      # doesn't work with plain token when pushing otherwise
-      - name: Login to xpkg with robot
-        uses: docker/login-action@5e57cd118135c172c3672efd75eb46360885c0ef # v3
-        with:
-          registry: ${{ env.XPKG_REGISTRY }}
-          username: ${{ env.UP_ROBOT_ID }}
-          password: ${{ env.UP_API_TOKEN }}
-
-      - name: Build and Push Upbound project
-        if: env.UP_API_TOKEN != ''
-        uses: upbound/action-up-project@b849ec1eb303ae4abf22b2b86c0e2afca155137b # v1
-        with:
-          push-project: true
-          tag: ${{ inputs.version || '' }}
-          # login-check does `up org list` which doesn't work with a robot-token
-          skip-login-check: true
-
-      - name: Append icon overlay to package
-        if: env.UP_API_TOKEN != '' && hashFiles('./extensions') != '' && inputs.version != ''
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5
+      - name: Install Crossplane CLI
         run: |
-          PROJECT_NAME=$(yq '.metadata.name' upbound.yaml)
-          PACKAGE_REF="${{ env.XPKG_REGISTRY }}/${{ env.UP_ORG }}/${PROJECT_NAME}:${{ inputs.version }}"
-          up alpha xpkg append --extensions-root=./extensions ${PACKAGE_REF}
+          curl -fsSL https://cli.crossplane.io/stable/v2.4.0/bin/linux_amd64/crossplane -o crossplane
+          chmod +x crossplane
+          sudo mv crossplane /usr/local/bin/crossplane
+      - name: Install YAML tooling
+        run: python3 -m pip install -r tests/requirements.txt yamllint
+      - name: Build Configuration package
+        run: make build
+      - name: Upload package
+        uses: actions/upload-artifact@v4
+        with:
+          name: configuration-caas
+          path: _output/configuration-caas.xpkg

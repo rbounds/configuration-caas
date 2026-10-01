@@ -1,0 +1,118 @@
+apiVersion: apiextensions.crossplane.io/v2
+kind: CompositeResourceDefinition
+metadata:
+  name: gke.gcp.platform.upbound.io
+spec:
+  scope: Namespaced
+  group: gcp.platform.upbound.io
+  names:
+    kind: GKE
+    plural: gke
+  versions:
+  - name: v1alpha1
+    served: true
+    referenceable: true
+    schema:
+      openAPIV3Schema:
+        type: object
+        properties:
+          spec:
+            type: object
+            properties:
+              parameters:
+                type: object
+                description: GKE configuration parameters.
+                properties:
+                  id:
+                    type: string
+                    description: ID of this Cluster that other objects will use to
+                      refer to it.
+                  project:
+                    type: string
+                    description: GCP project ID for the GKE cluster and service account,
+                      and used to derive the Workload Identity pool.
+                  region:
+                    type: string
+                    description: Region is the region you'd like your resource to
+                      be created in.
+                  managementPolicies:
+                    description: ManagementPolicies for resources. Defaults to ["*"]
+                      which includes all operations (Create, Observe, Update, Delete,
+                      LateInitialize). To orphan resources on deletion, use ["Create",
+                      "Observe", "Update", "LateInitialize"].
+                    type: array
+                    items:
+                      type: string
+                      enum:
+                      - '*'
+                      - Create
+                      - Observe
+                      - Update
+                      - Delete
+                      - LateInitialize
+                    default:
+                    - '*'
+                  providerConfigName:
+                    description: Crossplane ProviderConfig to use for provisioning
+                      this resources
+                    type: string
+                    default: default
+                  version:
+                    description: Kubernetes version
+                    type: string
+                    enum:
+                    - latest
+                    - '1.35'
+                    - '1.34'
+                    - '1.33'
+                    - '1.32'
+                    default: '1.34'
+                  workloadIdentity:
+                    type: object
+                    description: Workload Identity configuration parameters.
+                    properties:
+                      enabled:
+                        type: boolean
+                        description: Enable Workload Identity on the cluster and node
+                          pool.
+                        default: true
+                    default:
+                      enabled: true
+                  nodes:
+                    type: object
+                    description: GKE node configuration parameters.
+                    properties:
+                      count:
+                        type: integer
+                        description: Desired node count, from 1 to 100.
+                      instanceType:
+                        type: string
+                        description: instance types associated with the Node Group.
+                        default: n1-standard-4
+                      diskSizeGb:
+                        type: integer
+                        description: Boot disk size in GB per node; must be >= the
+                          node image size (GKE COS images are ~12GB). Defaults to
+                          20.
+                        default: 20
+                    required:
+                    - count
+                    - instanceType
+                required:
+                - id
+                - region
+                - managementPolicies
+                - providerConfigName
+                - nodes
+            required:
+            - parameters
+          status:
+            description: A Status represents the observed state
+            properties:
+              gke:
+                description: Freeform field containing status information for gke
+                type: object
+                x-kubernetes-preserve-unknown-fields: true
+            type: object
+  defaultCompositionRef:
+    name: gke.gcp.platform.upbound.io

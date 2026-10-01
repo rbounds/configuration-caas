@@ -1,0 +1,41 @@
+# Create the corresponding credentials Secrets in this namespace before use.
+# Apply only the ProviderConfig documents for the cloud(s) you use.
+apiVersion: aws.m.upbound.io/v1beta1
+kind: ProviderConfig
+metadata:
+  name: default
+  namespace: team-a
+spec:
+  credentials:
+    source: Secret
+    secretRef:
+      namespace: team-a
+      name: aws-credentials
+      key: credentials
+---
+apiVersion: azure.m.upbound.io/v1beta1
+kind: ProviderConfig
+metadata:
+  name: default
+  namespace: team-a
+spec:
+  credentials:
+    source: Secret
+    secretRef:
+      namespace: team-a
+      name: azure-credentials
+      key: credentials
+---
+apiVersion: gcp.m.upbound.io/v1beta1
+kind: ProviderConfig
+metadata:
+  name: default
+  namespace: team-a
+spec:
+  projectID: YOUR_GCP_PROJECT
+  credentials:
+    source: Secret
+    secretRef:
+      namespace: team-a
+      name: gcp-credentials
+      key: credentials

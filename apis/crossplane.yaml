@@ -1,0 +1,38 @@
+apiVersion: meta.pkg.crossplane.io/v1
+kind: Configuration
+metadata:
+  name: configuration-caas
+  annotations:
+    meta.crossplane.io/description: Namespaced Kubernetes clusters across AWS, Azure,
+      and GCP with GitOps and observability on OSS Crossplane v2.
+spec:
+  crossplane:
+    version: '>=v2.4.0'
+  dependsOn:
+  - function: xpkg.crossplane.io/crossplane-contrib/function-kcl
+    version: v0.12.3
+  - function: xpkg.crossplane.io/crossplane-contrib/function-auto-ready
+    version: v0.5.0
+  - provider: xpkg.crossplane.io/crossplane-contrib/provider-aws-ec2
+    version: v2.0.0
+  - provider: xpkg.crossplane.io/crossplane-contrib/provider-aws-eks
+    version: v2.0.0
+  - provider: xpkg.crossplane.io/crossplane-contrib/provider-aws-iam
+    version: v2.0.0
+  - provider: xpkg.crossplane.io/crossplane-contrib/provider-azure-network
+    version: v2.0.0
+  - provider: xpkg.crossplane.io/crossplane-contrib/provider-azure-containerservice
+    version: v2.0.0
+  - provider: xpkg.crossplane.io/crossplane-contrib/provider-gcp-compute
+    version: v2.0.0
+  - provider: xpkg.crossplane.io/crossplane-contrib/provider-gcp-container
+    version: v2.0.0
+  - provider: xpkg.crossplane.io/crossplane-contrib/provider-gcp-cloudplatform
+    version: v2.0.0
+  - provider: xpkg.crossplane.io/crossplane-contrib/provider-helm
+    version: v1.2.0
+  - provider: xpkg.crossplane.io/crossplane-contrib/provider-kubernetes
+    version: v1.0.0
+  - provider: xpkg.crossplane.io/crossplane-contrib/provider-family-azure
+    version: v2.0.0
+  license: Apache-2.0

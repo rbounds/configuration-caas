@@ -1,12 +1,5 @@
-import models.io.upbound.platform.aws.v1alpha1 as platformawsv1alpha1
-import models.io.upbound.platform.azure.v1alpha1 as azurev1alpha1
-import models.io.upbound.platform.gcp.v1alpha1 as gcpv1alpha1
-import models.io.upbound.platform.observe.v1alpha1 as observev1alpha1
-import models.io.crossplane.apiextensions.v1alpha1 as apiextensionsv1alpha1
-import models.io.upbound.platform.gitops.v1alpha1 as gitopsv1alpha1
-
 oxr = option("params").oxr
-_ocds = option("params").ocds
+_ocds = option("params").ocds or {}
 
 _metadata = lambda name: str -> any {
     { annotations = { "krm.kcl.dev/composition-resource-name" = name }}
@@ -45,26 +38,36 @@ prometheusVersion = oxr.spec.parameters.operators.prometheus.version
 fluxVersion = oxr.spec?.parameters?.operators?.flux?.version
 fluxSyncVersion = oxr.spec?.parameters?.operators?.fluxSync?.version
 argocdVersion = oxr.spec?.parameters?.operators?.argocd?.version
-uid = oxr.metadata.uid
-connectionSecretNamespace = oxr.spec?.writeConnectionSecretToRef?.namespace or "upbound-system"
+connectionSecretNamespace = oxr.metadata.namespace
+managementPolicies = ["*"] if deletionPolicy == "Delete" else ["Create", "Observe", "Update", "LateInitialize"]
 
 _items = []
 
 # AWS Resources
 if cloud == "aws":
     _items += [
-        platformawsv1alpha1.XNetwork{
+        {
+            apiVersion: "aws.platform.upbound.io/v1alpha1"
+            kind: "Network"
             metadata: _metadata("XNetworkAWS")
             spec: {
                 parameters: {
                     id: id
                     region: region
-                    deletionPolicy: deletionPolicy
+                    managementPolicies: managementPolicies
                     providerConfigName: providerConfigName
+                    subnets: oxr.spec?.parameters?.network?.subnets or [
+                        {availabilityZone: region + "a", type: "public", cidrBlock: "192.168.0.0/18"}
+                        {availabilityZone: region + "b", type: "public", cidrBlock: "192.168.64.0/18"}
+                        {availabilityZone: region + "a", type: "private", cidrBlock: "192.168.128.0/18"}
+                        {availabilityZone: region + "b", type: "private", cidrBlock: "192.168.192.0/18"}
+                    ]
                 }
             }
         }
-        platformawsv1alpha1.XEKS{
+        {
+            apiVersion: "aws.platform.upbound.io/v1alpha1"
+            kind: "EKS"
             metadata: _metadata("XEKS") | {
                 labels: {
                     "xeks.aws.platform.upbound.io/cluster-id": id
@@ -78,7 +81,7 @@ if cloud == "aws":
                 parameters: {
                     id: id
                     region: region
-                    deletionPolicy: deletionPolicy
+                    managementPolicies: managementPolicies
                     providerConfigName: providerConfigName
                     version: version
                     accessConfig: {
@@ -91,25 +94,23 @@ if cloud == "aws":
                     }
                     **({iam: {principalArn: iamPrincipalArn}} if iamPrincipalArn else {})
                 }
-                writeConnectionSecretToRef: {
-                    name: "{}-eks".format(id)
-                    namespace: connectionSecretNamespace
-                }
             }
         }
-        apiextensionsv1alpha1.Usage{
+        {
+            apiVersion: "protection.crossplane.io/v1beta1"
+            kind: "Usage"
             metadata: _metadata("usageXEksByXOss")
             spec: {
                 of: {
                     apiVersion: "aws.platform.upbound.io/v1alpha1"
-                    kind: "XEKS"
+                    kind: "EKS"
                     resourceSelector: {
                         matchControllerRef: True
                     }
                 }
                 by: {
                     apiVersion: "observe.platform.upbound.io/v1alpha1"
-                    kind: "XOss"
+                    kind: "Oss"
                     resourceSelector: {
                         matchControllerRef: True
                     }
@@ -121,7 +122,9 @@ if cloud == "aws":
 # Azure Resources
 if cloud == "azure":
     _items += [
-        azurev1alpha1.XNetwork{
+        {
+            apiVersion: "azure.platform.upbound.io/v1alpha1"
+            kind: "Network"
             metadata: _metadata("XNetworkAZURE")
             spec: {
                 parameters: {
@@ -129,12 +132,14 @@ if cloud == "azure":
                     region: region
                     addressRange: "10.1.0.0/16"
                     generalSubnetRange: "10.1.1.0/24"
-                    deletionPolicy: deletionPolicy
+                    managementPolicies: managementPolicies
                     providerConfigName: providerConfigName
                 }
             }
         }
-        azurev1alpha1.XAKS{
+        {
+            apiVersion: "azure.platform.upbound.io/v1alpha1"
+            kind: "AKS"
             metadata: _metadata("XAKS") | {
                 labels: {
                     "xaks.azure.platform.upbound.io/cluster-id": id
@@ -144,7 +149,7 @@ if cloud == "azure":
                 parameters: {
                     id: id
                     region: region
-                    deletionPolicy: deletionPolicy
+                    managementPolicies: managementPolicies
                     providerConfigName: providerConfigName
                     version: version
                     nodes: {
@@ -152,25 +157,23 @@ if cloud == "azure":
                         instanceType: instanceType
                     }
                 }
-                writeConnectionSecretToRef: {
-                    name: "{}-aks".format(id)
-                    namespace: connectionSecretNamespace
-                }
             }
         }
-        apiextensionsv1alpha1.Usage{
+        {
+            apiVersion: "protection.crossplane.io/v1beta1"
+            kind: "Usage"
             metadata: _metadata("usageXAksByXOss")
             spec: {
                 of: {
                     apiVersion: "azure.platform.upbound.io/v1alpha1"
-                    kind: "XAKS"
+                    kind: "AKS"
                     resourceSelector: {
                         matchControllerRef: True
                     }
                 }
                 by: {
                     apiVersion: "observe.platform.upbound.io/v1alpha1"
-                    kind: "XOss"
+                    kind: "Oss"
                     resourceSelector: {
                         matchControllerRef: True
                     }
@@ -182,18 +185,22 @@ if cloud == "azure":
 # GCP Resources
 if cloud == "gcp":
     _items += [
-        gcpv1alpha1.XNetwork{
+        {
+            apiVersion: "gcp.platform.upbound.io/v1alpha1"
+            kind: "Network"
             metadata: _metadata("XNetworkGCP")
             spec: {
                 parameters: {
                     id: id
                     region: region
-                    deletionPolicy: deletionPolicy
+                    managementPolicies: managementPolicies
                     providerConfigName: providerConfigName
                 }
             }
         }
-        gcpv1alpha1.XGKE{
+        {
+            apiVersion: "gcp.platform.upbound.io/v1alpha1"
+            kind: "GKE"
             metadata: _metadata("XGKE") | {
                 labels: {
                     "xgke.gcp.platform.upbound.io/cluster-id": id
@@ -206,7 +213,7 @@ if cloud == "gcp":
                 parameters: {
                     id: id
                     region: region
-                    deletionPolicy: deletionPolicy
+                    managementPolicies: managementPolicies
                     providerConfigName: providerConfigName
                     version: version
                     nodes: {
@@ -214,25 +221,23 @@ if cloud == "gcp":
                         instanceType: instanceType
                     }
                 }
-                writeConnectionSecretToRef: {
-                    name: "{}-gke".format(id)
-                    namespace: connectionSecretNamespace
-                }
             }
         }
-        apiextensionsv1alpha1.Usage{
+        {
+            apiVersion: "protection.crossplane.io/v1beta1"
+            kind: "Usage"
             metadata: _metadata("usageXGkeByXOss")
             spec: {
                 of: {
                     apiVersion: "gcp.platform.upbound.io/v1alpha1"
-                    kind: "XGKE"
+                    kind: "GKE"
                     resourceSelector: {
                         matchControllerRef: True
                     }
                 }
                 by: {
                     apiVersion: "observe.platform.upbound.io/v1alpha1"
-                    kind: "XOss"
+                    kind: "Oss"
                     resourceSelector: {
                         matchControllerRef: True
                     }
@@ -262,7 +267,9 @@ _observedVpcId = _ocds?["XNetworkAWS"]?.Resource?.status?.vpcId
 # Also create if it already exists to prevent uninstalling
 if cloud == "aws" and (_isEksReady or _lbControllerExists):
     _items += [
-        platformawsv1alpha1.XAWSLBController{
+        {
+            apiVersion: "aws.platform.upbound.io/v1alpha1"
+            kind: "AWSLBController"
             metadata: _metadata("XAWSLBController") | {
                 labels: {
                     "platform.upbound.io/deletion-ordering": "enabled"
@@ -271,16 +278,13 @@ if cloud == "aws" and (_isEksReady or _lbControllerExists):
             spec: {
                 parameters: {
                     providerConfigName: providerConfigName
-                    deletionPolicy: deletionPolicy
+                    managementPolicies: managementPolicies
                     helm: {
                         providerConfigName: id
                     }
                     region: region
-                    clusterNameSelector: {
-                        matchLabels: {
-                            "crossplane.io/composite": id
-                        }
-                    }
+                    clusterName: _ocds?["XEKS"]?.Resource?.status?.eks?.clusterName or _ocds?["XAWSLBController"]?.Resource?.spec?.parameters?.clusterName
+                    eksResourceName: _ocds?["XEKS"]?.Resource?.metadata?.name or _ocds?["XAWSLBController"]?.Resource?.spec?.parameters?.eksResourceName
                     # Pass VPC ID if available to avoid EC2 metadata discovery
                     if _observedVpcId:
                         vpcId = _observedVpcId
@@ -291,19 +295,21 @@ if cloud == "aws" and (_isEksReady or _lbControllerExists):
 
     # Usage resources for XAWSLBController
     _items += [
-        apiextensionsv1alpha1.Usage{
+        {
+            apiVersion: "protection.crossplane.io/v1beta1"
+            kind: "Usage"
             metadata: _metadata("usageXEksByXAWSLBController")
             spec: {
                 of: {
                     apiVersion: "aws.platform.upbound.io/v1alpha1"
-                    kind: "XEKS"
+                    kind: "EKS"
                     resourceSelector: {
                         matchControllerRef: True
                     }
                 }
                 by: {
                     apiVersion: "aws.platform.upbound.io/v1alpha1"
-                    kind: "XAWSLBController"
+                    kind: "AWSLBController"
                     resourceSelector: {
                         matchControllerRef: True
                     }
@@ -311,7 +317,9 @@ if cloud == "aws" and (_isEksReady or _lbControllerExists):
             }
         }
         # Ensure XOss is deleted before XAWSLBController (if XOss exists)
-        apiextensionsv1alpha1.Usage{
+        {
+            apiVersion: "protection.crossplane.io/v1beta1"
+            kind: "Usage"
             metadata: _metadata("usageXAWSLBControllerByXOss") | {
                 annotations: {
                     "krm.kcl.dev/ready": "True"
@@ -321,14 +329,14 @@ if cloud == "aws" and (_isEksReady or _lbControllerExists):
                 replayDeletion: True
                 of: {
                     apiVersion: "aws.platform.upbound.io/v1alpha1"
-                    kind: "XAWSLBController"
+                    kind: "AWSLBController"
                     resourceSelector: {
                         matchControllerRef: True
                     }
                 }
                 by: {
                     apiVersion: "observe.platform.upbound.io/v1alpha1"
-                    kind: "XOss"
+                    kind: "Oss"
                     resourceSelector: {
                         matchControllerRef: True
                     }
@@ -353,11 +361,13 @@ elif cloud == "gcp":
 # For Azure/GCP: waits for cluster to be ready
 if _readyForHelm or _ossExists:
     _items += [
-        observev1alpha1.XOss{
+        {
+            apiVersion: "observe.platform.upbound.io/v1alpha1"
+            kind: "Oss"
             metadata: _metadata("XOss")
             spec: {
                 parameters: {
-                    deletionPolicy: deletionPolicy
+                    managementPolicies: managementPolicies
                     id: id
                     operators: {
                         prometheus: {
@@ -374,11 +384,13 @@ if _readyForHelm or _ossExists:
 # For Azure/GCP: waits for cluster to be ready
 if gitopsOperator == "flux" and (_readyForHelm or _fluxExists):
     _items += [
-        gitopsv1alpha1.XFlux{
+        {
+            apiVersion: "gitops.platform.upbound.io/v1alpha1"
+            kind: "Flux"
             metadata: _metadata("XFlux")
             spec: {
                 parameters: {
-                    deletionPolicy: deletionPolicy
+                    managementPolicies: managementPolicies
                     providerConfigName: id
                     operators: {
                         flux: {
@@ -399,19 +411,21 @@ if gitopsOperator == "flux" and (_readyForHelm or _fluxExists):
     # Usage resources for Flux
     if cloud == "aws":
         _items += [
-            apiextensionsv1alpha1.Usage{
+            {
+                apiVersion: "protection.crossplane.io/v1beta1"
+                kind: "Usage"
                 metadata: _metadata("usageXEksByXFlux")
                 spec: {
                     of: {
                         apiVersion: "aws.platform.upbound.io/v1alpha1"
-                        kind: "XEKS"
+                        kind: "EKS"
                         resourceSelector: {
                             matchControllerRef: True
                         }
                     }
                     by: {
                         apiVersion: "gitops.platform.upbound.io/v1alpha1"
-                        kind: "XFlux"
+                        kind: "Flux"
                         resourceSelector: {
                             matchControllerRef: True
                         }
@@ -419,7 +433,9 @@ if gitopsOperator == "flux" and (_readyForHelm or _fluxExists):
                 }
             }
             # Ensure XFlux is deleted before XAWSLBController
-            apiextensionsv1alpha1.Usage{
+            {
+                apiVersion: "protection.crossplane.io/v1beta1"
+                kind: "Usage"
                 metadata: _metadata("usageXAWSLBControllerByXFlux") | {
                     annotations: {
                         "krm.kcl.dev/ready": "True"
@@ -429,14 +445,14 @@ if gitopsOperator == "flux" and (_readyForHelm or _fluxExists):
                     replayDeletion: True
                     of: {
                         apiVersion: "aws.platform.upbound.io/v1alpha1"
-                        kind: "XAWSLBController"
+                        kind: "AWSLBController"
                         resourceSelector: {
                             matchControllerRef: True
                         }
                     }
                     by: {
                         apiVersion: "gitops.platform.upbound.io/v1alpha1"
-                        kind: "XFlux"
+                        kind: "Flux"
                         resourceSelector: {
                             matchControllerRef: True
                         }
@@ -446,19 +462,21 @@ if gitopsOperator == "flux" and (_readyForHelm or _fluxExists):
         ]
     elif cloud == "azure":
         _items += [
-            apiextensionsv1alpha1.Usage{
+            {
+                apiVersion: "protection.crossplane.io/v1beta1"
+                kind: "Usage"
                 metadata: _metadata("usageXAksByXFlux")
                 spec: {
                     of: {
                         apiVersion: "azure.platform.upbound.io/v1alpha1"
-                        kind: "XAKS"
+                        kind: "AKS"
                         resourceSelector: {
                             matchControllerRef: True
                         }
                     }
                     by: {
                         apiVersion: "gitops.platform.upbound.io/v1alpha1"
-                        kind: "XFlux"
+                        kind: "Flux"
                         resourceSelector: {
                             matchControllerRef: True
                         }
@@ -468,19 +486,21 @@ if gitopsOperator == "flux" and (_readyForHelm or _fluxExists):
         ]
     elif cloud == "gcp":
         _items += [
-            apiextensionsv1alpha1.Usage{
+            {
+                apiVersion: "protection.crossplane.io/v1beta1"
+                kind: "Usage"
                 metadata: _metadata("usageXGkeByXFlux")
                 spec: {
                     of: {
                         apiVersion: "gcp.platform.upbound.io/v1alpha1"
-                        kind: "XGKE"
+                        kind: "GKE"
                         resourceSelector: {
                             matchControllerRef: True
                         }
                     }
                     by: {
                         apiVersion: "gitops.platform.upbound.io/v1alpha1"
-                        kind: "XFlux"
+                        kind: "Flux"
                         resourceSelector: {
                             matchControllerRef: True
                         }
@@ -494,11 +514,13 @@ if gitopsOperator == "flux" and (_readyForHelm or _fluxExists):
 # For Azure/GCP: waits for cluster to be ready
 if gitopsOperator == "argocd" and (_readyForHelm or _argoExists):
     _items += [
-        gitopsv1alpha1.XArgo{
+        {
+            apiVersion: "gitops.platform.upbound.io/v1alpha1"
+            kind: "XArgo"
             metadata: _metadata("XArgo")
             spec: {
                 parameters: {
-                    deletionPolicy: deletionPolicy
+                    managementPolicies: managementPolicies
                     providerConfigName: id
                     operators: {
                         argocd: {
@@ -522,12 +544,14 @@ if gitopsOperator == "argocd" and (_readyForHelm or _argoExists):
     # Usage resources for ArgoCD
     if cloud == "aws":
         _items += [
-            apiextensionsv1alpha1.Usage{
+            {
+                apiVersion: "protection.crossplane.io/v1beta1"
+                kind: "Usage"
                 metadata: _metadata("usageXEksByXArgo")
                 spec: {
                     of: {
                         apiVersion: "aws.platform.upbound.io/v1alpha1"
-                        kind: "XEKS"
+                        kind: "EKS"
                         resourceSelector: {
                             matchControllerRef: True
                         }
@@ -542,7 +566,9 @@ if gitopsOperator == "argocd" and (_readyForHelm or _argoExists):
                 }
             }
             # Ensure XArgo is deleted before XAWSLBController
-            apiextensionsv1alpha1.Usage{
+            {
+                apiVersion: "protection.crossplane.io/v1beta1"
+                kind: "Usage"
                 metadata: _metadata("usageXAWSLBControllerByXArgo") | {
                     annotations: {
                         "krm.kcl.dev/ready": "True"
@@ -552,7 +578,7 @@ if gitopsOperator == "argocd" and (_readyForHelm or _argoExists):
                     replayDeletion: True
                     of: {
                         apiVersion: "aws.platform.upbound.io/v1alpha1"
-                        kind: "XAWSLBController"
+                        kind: "AWSLBController"
                         resourceSelector: {
                             matchControllerRef: True
                         }
@@ -569,12 +595,14 @@ if gitopsOperator == "argocd" and (_readyForHelm or _argoExists):
         ]
     elif cloud == "azure":
         _items += [
-            apiextensionsv1alpha1.Usage{
+            {
+                apiVersion: "protection.crossplane.io/v1beta1"
+                kind: "Usage"
                 metadata: _metadata("usageXAksByXArgo")
                 spec: {
                     of: {
                         apiVersion: "azure.platform.upbound.io/v1alpha1"
-                        kind: "XAKS"
+                        kind: "AKS"
                         resourceSelector: {
                             matchControllerRef: True
                         }
@@ -591,12 +619,14 @@ if gitopsOperator == "argocd" and (_readyForHelm or _argoExists):
         ]
     elif cloud == "gcp":
         _items += [
-            apiextensionsv1alpha1.Usage{
+            {
+                apiVersion: "protection.crossplane.io/v1beta1"
+                kind: "Usage"
                 metadata: _metadata("usageXGkeByXArgo")
                 spec: {
                     of: {
                         apiVersion: "gcp.platform.upbound.io/v1alpha1"
-                        kind: "XGKE"
+                        kind: "GKE"
                         resourceSelector: {
                             matchControllerRef: True
                         }
@@ -612,13 +642,49 @@ if gitopsOperator == "argocd" and (_readyForHelm or _argoExists):
             }
         ]
 
-# Connection details for kubeconfig
+# v2 XRs compose a native Secret. The nested cloud XRs no longer forward
+# connection details; retrieve the MR's Secret through the Helm ProviderConfig.
+_required = option("params")?.requiredResources or {}
+_providerConfigs = _required?.clusterProviderConfig or []
+_sourceRef = _providerConfigs[0]?.Resource?.spec?.credentials?.secretRef if _providerConfigs else None
+_requirements = {
+    clusterProviderConfig: {
+        apiVersion: "helm.m.crossplane.io/v1beta1"
+        kind: "ProviderConfig"
+        name: id
+        namespace: oxr.metadata.namespace
+    }
+}
+if _sourceRef:
+    assert _sourceRef.namespace == oxr.metadata.namespace, "kubeconfig must remain in the XCluster namespace"
+    _requirements.kubeconfig = {
+        apiVersion: "v1"
+        kind: "Secret"
+        name: _sourceRef.name
+        namespace: oxr.metadata.namespace
+    }
 _items += [{
     apiVersion: "meta.krm.kcl.dev/v1alpha1"
-    kind: "CompositeConnectionDetails"
-    data: {
-        kubeconfig: _ocds?.XEKS?.ConnectionDetails?.kubeconfig or _ocds?.XAKS?.ConnectionDetails?.kubeconfig or _ocds?.XGKE?.ConnectionDetails?.kubeconfig
-    }
+    kind: "RequiredResources"
+    requirements: _requirements
 }]
 
-items = _items
+_sourceSecrets = _required?.kubeconfig or []
+_kubeconfig = _sourceSecrets[0]?.Resource?.data?[_sourceRef.key] if _sourceSecrets and _sourceRef else None
+# Preserve the last value while the upstream Secret is temporarily unavailable.
+_kubeconfig = _kubeconfig or _ocds?["connection-secret"]?.Resource?.data?.kubeconfig
+_items += [{
+    apiVersion: "v1"
+    kind: "Secret"
+    metadata: _metadata("connection-secret") | {
+        name: oxr.spec?.writeConnectionSecretToRef?.name or "{}-kubeconfig".format(id)
+        namespace: connectionSecretNamespace
+        annotations: {
+            "krm.kcl.dev/ready": "True" if _kubeconfig else "False"
+        }
+    }
+    type: "Opaque"
+    data: {kubeconfig: _kubeconfig} if _kubeconfig else {}
+}]
+
+items = [item | {metadata.namespace = oxr.metadata.namespace} if item.kind != "RequiredResources" else item for item in _items]
